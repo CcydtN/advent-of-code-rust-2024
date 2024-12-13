@@ -21,6 +21,7 @@ test_lib = []
 
 [dependencies]
 itertools = "0.13.0"
+num = "0.4.3"
 
 # Template dependencies
 chrono = { version = "0.4.38", optional = true }
