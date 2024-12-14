@@ -9,7 +9,7 @@ advent_of_code::solution!(6);
 enum Cell {
     #[default]
     Empty,
-    Visited,
+    Visited([bool; 4]),
     Obstacle,
 }
 
@@ -23,11 +23,19 @@ const DOWN: (usize, usize) = (1, 0);
 const LEFT: (usize, usize) = (0, usize::MAX);
 const RIGHT: (usize, usize) = (0, 1);
 
+fn dir2idx(dir: &(usize, usize)) -> usize {
+    [UP, DOWN, LEFT, RIGHT]
+        .iter()
+        .position(|x| x == dir)
+        .unwrap()
+}
+
 #[derive(Debug, Clone, Default)]
 struct Helper<T> {
     guard: (usize, usize),
     dir: (usize, usize),
     map: Vec<Vec<Cell>>,
+    has_loop: bool,
     _part: PhantomData<T>,
 }
 
@@ -63,7 +71,7 @@ impl Helper<PartOne> {
                     '.' => (),
                     '#' => map[i][j] = Cell::Obstacle,
                     '^' => {
-                        map[i][j] = Cell::Visited;
+                        map[i][j] = Cell::Visited([true, false, false, false]);
                         let _ = guard.insert((i, j));
                     }
                     _ => unreachable!(),
@@ -87,11 +95,18 @@ impl Helper<PartOne> {
             Cell::Obstacle => {
                 self.dir = self.rotate();
             }
-            Cell::Visited => {
+            Cell::Empty => {
+                let mut visited = [false; 4];
+                visited[dir2idx(&self.dir)] = true;
+                self.map[next.0][next.1] = Cell::Visited(visited);
                 self.guard = next;
             }
-            Cell::Empty => {
-                self.map[next.0][next.1] = Cell::Visited;
+            Cell::Visited(ref mut visited) => {
+                if visited[dir2idx(&self.dir)] {
+                    self.has_loop = true;
+                    return false;
+                }
+                visited[dir2idx(&self.dir)] = true;
                 self.guard = next;
             }
         }
@@ -102,7 +117,10 @@ impl Helper<PartOne> {
         self.map
             .into_iter()
             .flatten()
-            .filter(|cell| cell == &Cell::Visited)
+            .filter(|cell| match cell {
+                Cell::Visited(_) => true,
+                _ => false,
+            })
             .count()
     }
 }
@@ -112,7 +130,7 @@ impl Helper<PartTwo> {
         todo!()
     }
 
-    fn update(&mut self) -> bool {
+    fn compute(&mut self) -> bool {
         todo!()
     }
 
@@ -128,12 +146,27 @@ pub fn part_one(input: &str) -> Option<u64> {
     helper.count().to_u64()
 }
 
-//2031 too high
-//1973 wrong
+// Brute force
 pub fn part_two(input: &str) -> Option<u64> {
-    let mut helper = Helper::<PartTwo>::new(input);
+    let mut helper = Helper::<PartOne>::new(input);
     while helper.update() {}
-    helper.count().to_u64()
+
+    let mut count = 0;
+    for (i, row) in helper.map.iter().enumerate() {
+        for (j, cell) in row.iter().enumerate() {
+            match cell {
+                Cell::Visited(_) => {}
+                _ => continue,
+            }
+            let mut tmp = Helper::<PartOne>::new(input);
+            tmp.map[i][j] = Cell::Obstacle;
+            while tmp.update() {}
+            if tmp.has_loop == true {
+                count += 1;
+            }
+        }
+    }
+    count.to_u64()
 }
 
 #[cfg(test)]
