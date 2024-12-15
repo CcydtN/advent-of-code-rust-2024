@@ -93,9 +93,83 @@ pub fn part_one(input: &str) -> Option<u64> {
     }
     sum.to_u64()
 }
+#[derive(Debug, Clone)]
+enum Frag {
+    File { id: u64, size: u64 },
+    Space { content: Vec<Frag>, size: u64 },
+}
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let mut disk = vec![];
+    for (i, c) in input.trim().chars().enumerate() {
+        let size = c.to_digit(10).unwrap().to_u64().unwrap();
+        if i % 2 == 0 {
+            disk.push(Frag::File {
+                id: i.to_u64().unwrap() / 2,
+                size: size,
+            });
+        } else {
+            disk.push(Frag::Space {
+                content: vec![],
+                size: size,
+            });
+        }
+    }
+    // dbg!(&disk);
+    for i in (0..disk.len()).rev().step_by(2) {
+        let (search_space, target) = disk.split_at_mut(i);
+        let target_size = match &target[0] {
+            Frag::File { id: _, size } => size.clone(),
+            Frag::Space {
+                content: _,
+                size: _,
+            } => unreachable!(),
+        };
+
+        let item = search_space.iter_mut().find(|x: &&mut Frag| match x {
+            Frag::File { id: _, size: _ } => false,
+            Frag::Space { content: _, size } => size >= &target_size,
+        });
+        if let Some(Frag::Space { content, size }) = item {
+            *size -= target_size;
+            content.push(target[0].clone());
+            target[0] = Frag::Space {
+                content: vec![],
+                size: target_size,
+            };
+        }
+    }
+    // dbg!(&disk);
+    let mut pos = 0;
+    let mut sum = 0;
+    for frag in disk.into_iter() {
+        match frag {
+            Frag::File { id, size } => {
+                for _ in 0..size {
+                    sum += id * pos;
+                    pos += 1;
+                }
+            }
+            Frag::Space { content, size } => {
+                for item in content {
+                    match item {
+                        Frag::File { id, size } => {
+                            for _ in 0..size {
+                                sum += id * pos;
+                                pos += 1;
+                            }
+                        }
+                        Frag::Space {
+                            content: _,
+                            size: _,
+                        } => unreachable!(),
+                    }
+                }
+                pos += size;
+            }
+        }
+    }
+    sum.to_u64()
 }
 
 #[cfg(test)]
