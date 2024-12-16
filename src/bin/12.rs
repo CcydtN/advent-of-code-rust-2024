@@ -42,25 +42,49 @@ fn count_edge(regions: &HashSet<(usize, usize)>) -> u64 {
     let mut rows = BTreeMap::new();
     let mut columns = BTreeMap::new();
     for (i, j) in regions {
-        rows.entry(j).or_insert(BTreeSet::new()).insert(i);
-        columns.entry(i).or_insert(BTreeSet::new()).insert(j);
+        rows.entry(i).or_insert(BTreeSet::new()).insert(j);
+        columns.entry(j).or_insert(BTreeSet::new()).insert(i);
     }
     let mut count = 0;
-    count += rows.first_key_value().unwrap().1.len();
-    count += rows.last_key_value().unwrap().1.len();
-    for (a, b) in rows.into_values().tuple_windows() {
-        count += a.symmetric_difference(&b).count()
-    }
-    count += columns.first_key_value().unwrap().1.len();
-    count += columns.last_key_value().unwrap().1.len();
-    for (a, b) in columns.into_values().tuple_windows() {
-        count += a.symmetric_difference(&b).count()
+    for tmp in [rows, columns] {
+        count += tmp.first_key_value().unwrap().1.len();
+        count += tmp.last_key_value().unwrap().1.len();
+        for (a, b) in tmp.into_values().tuple_windows() {
+            count += a.symmetric_difference(&b).count()
+        }
     }
     count.to_u64().unwrap()
 }
 
-fn count_edge_group(regions: HashSet<(usize, usize)>) -> u64 {
-    todo!()
+fn count_group<'a>(iter: impl IntoIterator<Item = &'a usize>) -> usize {
+    let value = iter.into_iter().collect_vec();
+    if value.len() == 0 {
+        return 0;
+    }
+    value
+        .into_iter()
+        .tuple_windows::<(_, _)>()
+        .fold(1, |acc, (a, b)| acc + (b - a != 1) as usize)
+}
+
+fn count_edge_group(regions: &HashSet<(usize, usize)>) -> u64 {
+    let mut rows = BTreeMap::new();
+    let mut columns = BTreeMap::new();
+    for &(i, j) in regions {
+        rows.entry(i).or_insert(BTreeSet::new()).insert(j);
+        columns.entry(j).or_insert(BTreeSet::new()).insert(i);
+    }
+    // dbg!(&rows, &columns);
+    let mut count = 0;
+    for tmp in [rows, columns] {
+        count += count_group(tmp.first_key_value().unwrap().1);
+        count += count_group(tmp.last_key_value().unwrap().1);
+        for (a, b) in tmp.into_values().tuple_windows() {
+            count += count_group(a.difference(&b));
+            count += count_group(b.difference(&a));
+        }
+    }
+    count.to_u64().unwrap()
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
@@ -87,76 +111,6 @@ pub fn part_one(input: &str) -> Option<u64> {
     Some(sum)
 }
 
-pub fn part_two_dfs(root: (usize, usize), grid: &mut Vec<Vec<char>>) -> (u64, u64) {
-    let mut stack = vec![root];
-    let mut visited = HashSet::new();
-    visited.insert(root);
-    let mut vertical_edge = BTreeMap::new();
-    let mut horizontal_edge = BTreeMap::new();
-    while let Some((i, j)) = stack.pop() {
-        for offset in [1, usize::MAX] {
-            {
-                let x = i.wrapping_add(offset);
-                if x < grid.len() && grid[x][j] == grid[i][j] {
-                    if visited.insert((x, j)) {
-                        stack.push((x, j));
-                    }
-                }
-            }
-            {
-                let y = j.wrapping_add(offset);
-                if y < grid.len() && grid[i][y] == grid[i][j] {
-                    if visited.insert((i, y)) {
-                        stack.push((i, y));
-                    }
-                }
-            }
-        }
-        horizontal_edge
-            .entry(j)
-            .or_insert(BTreeSet::new())
-            .insert(i);
-        vertical_edge.entry(i).or_insert(BTreeSet::new()).insert(j);
-    }
-    let area = visited.len() as u64;
-    let mut edge = 0;
-    let mut last = BTreeSet::new();
-
-    // Should be cleaner if we use rangeset, just count the group of difference.
-    for item in horizontal_edge.into_values().chain([BTreeSet::new()]) {
-        let mut last_val = usize::MAX;
-        for val in last.difference(&item) {
-            edge += (&last_val != val) as u64;
-            last_val = val.to_owned() + 1;
-        }
-        let mut last_val = usize::MAX;
-        for val in item.difference(&last) {
-            edge += (&last_val != val) as u64;
-            last_val = val.to_owned() + 1;
-        }
-        last = item;
-    }
-    let mut last = BTreeSet::new();
-    for item in vertical_edge.into_values().chain([BTreeSet::new()]) {
-        let mut last_val = usize::MAX;
-        for val in last.difference(&item) {
-            edge += (&last_val != val) as u64;
-            last_val = val.to_owned() + 1;
-        }
-        let mut last_val = usize::MAX;
-        for val in item.difference(&last) {
-            edge += (&last_val != val) as u64;
-            last_val = val.to_owned() + 1;
-        }
-        last = item;
-    }
-
-    for (i, j) in visited {
-        grid[i][j] = '.'
-    }
-    (area, edge as u64)
-}
-
 // 907046 X
 pub fn part_two(input: &str) -> Option<u64> {
     let mut grid = input
@@ -170,10 +124,14 @@ pub fn part_two(input: &str) -> Option<u64> {
         if grid[i][j] == '.' {
             continue;
         }
-        let dbg_info = grid[i][j];
-        let (area, edge) = part_two_dfs((i, j), &mut grid);
-        // dbg!(dbg_info, area, edge, area * edge);
+        let region = dfs((i, j), &grid);
+        let area = region.len() as u64;
+        let edge = count_edge_group(&region);
+        dbg!(grid[i][j], area, edge, area * edge);
         sum += area * edge;
+        for (x, y) in region {
+            grid[x][y] = '.';
+        }
     }
     Some(sum)
 }
