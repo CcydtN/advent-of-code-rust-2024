@@ -1,55 +1,9 @@
-use std::{
-    collections::{HashMap, HashSet},
-    ops::{Add, Sub},
-};
+use std::collections::{HashMap, HashSet};
+mod util;
 
 use num::ToPrimitive;
 
 advent_of_code::solution!(8);
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-struct SimpleVector {
-    x: usize,
-    y: usize,
-}
-
-impl SimpleVector {
-    fn new(x: usize, y: usize) -> Self {
-        Self { x, y }
-    }
-}
-
-impl Add for SimpleVector {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self::new(self.x.wrapping_add(rhs.x), self.y.wrapping_add(rhs.y))
-    }
-}
-
-impl Add for &SimpleVector {
-    type Output = SimpleVector;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        SimpleVector::new(self.x.wrapping_add(rhs.x), self.y.wrapping_add(rhs.y))
-    }
-}
-
-impl Sub for SimpleVector {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self::new(self.x.wrapping_sub(rhs.x), self.y.wrapping_sub(rhs.y))
-    }
-}
-
-impl Sub for &SimpleVector {
-    type Output = SimpleVector;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        SimpleVector::new(self.x.wrapping_sub(rhs.x), self.y.wrapping_sub(rhs.y))
-    }
-}
 
 pub fn part_one(input: &str) -> Option<u64> {
     // dbg!(input);
@@ -61,7 +15,9 @@ pub fn part_one(input: &str) -> Option<u64> {
             if cell == '.' {
                 continue;
             }
-            map.entry(cell).or_default().push(SimpleVector::new(i, j));
+            map.entry(cell)
+                .or_default()
+                .push(util::SimpleVector::new(i, j));
         }
     }
     // dbg!(map);
@@ -89,7 +45,9 @@ pub fn part_two(input: &str) -> Option<u64> {
             if cell == '.' {
                 continue;
             }
-            map.entry(cell).or_default().push(SimpleVector::new(i, j));
+            map.entry(cell)
+                .or_default()
+                .push(util::SimpleVector::new(i, j));
         }
     }
     // dbg!(map);
