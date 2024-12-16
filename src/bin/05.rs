@@ -6,13 +6,17 @@ advent_of_code::solution!(5);
 
 fn part_one_check_order(updates: &[u64], rules: &HashMap<u64, HashSet<u64>>) -> bool {
     let mut table = rules.get(&updates[0]).cloned().unwrap_or(HashSet::new());
-    for update in updates.into_iter().skip(1) {
+    for update in updates[1..updates.len() - 1].into_iter() {
         if !table.contains(update) {
             return false;
         }
-        table = table.intersection(&rules[update]).cloned().collect();
+        if let Some(rule) = rules.get(update) {
+            table = table.intersection(&rule).cloned().collect();
+        } else {
+            return false;
+        }
     }
-    true
+    table.contains(updates.last().unwrap())
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
@@ -25,7 +29,7 @@ pub fn part_one(input: &str) -> Option<u64> {
         let after = line[sep + 1..].parse::<u64>().unwrap();
         rules.entry(before).or_insert(HashSet::new()).insert(after);
     }
-    // dbg!(&rules);
+    dbg!(&rules);
 
     let mut sum = 0;
     for line in parts.next().unwrap().lines() {
@@ -34,6 +38,7 @@ pub fn part_one(input: &str) -> Option<u64> {
             .map(|item| item.parse::<u64>().unwrap())
             .collect_vec();
         if part_one_check_order(&items, &rules) {
+            dbg!(&items);
             sum += items[items.len() / 2];
         }
     }
@@ -71,10 +76,12 @@ pub fn part_two(input: &str) -> Option<u64> {
             .split(",")
             .map(|item| item.parse::<u64>().unwrap())
             .collect_vec();
-        let new_items = part_two_helper(items.clone(), &rules);
-        if new_items != items {
-            sum += new_items[new_items.len() / 2];
+        if part_one_check_order(&items, &rules) {
+            continue;
         }
+        let new_items = part_two_helper(items.clone(), &rules);
+        dbg!(&new_items);
+        sum += new_items[new_items.len() / 2];
     }
     Some(sum)
 }
@@ -86,12 +93,12 @@ mod tests {
     #[test]
     fn test_part_one() {
         let result = part_one(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(143));
     }
 
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(123));
     }
 }
