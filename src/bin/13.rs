@@ -88,7 +88,20 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let machines = input.split("\n\n").map(Machine::parse).collect_vec();
+    // dbg!(&machines);
+    let mut sum = 0;
+    for mut machine in machines {
+        machine.price.0 += 10000000000000;
+        machine.price.1 += 10000000000000;
+        // dbg!(&machine);
+        let solution = machine.solve_press_count();
+        // dbg!(solution);
+        if let Some((a_press, b_press)) = solution {
+            sum += 3 * a_press + b_press;
+        }
+    }
+    sum.to_u64()
 }
 
 #[cfg(test)]
@@ -104,6 +117,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(875318608908));
     }
 }
