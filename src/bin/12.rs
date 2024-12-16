@@ -1,41 +1,66 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-
 use itertools::{iproduct, Itertools};
+use num::ToPrimitive;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 advent_of_code::solution!(12);
 
-pub fn part_one_dfs(root: (usize, usize), grid: &mut Vec<Vec<char>>) -> (u64, u64) {
+fn get_neighbor((i, j): (usize, usize), grid: &Vec<Vec<char>>) -> Vec<(usize, usize)> {
+    let mut result = vec![];
+    if i != 0 {
+        result.push((i - 1, j));
+    }
+    if i != grid.len() - 1 {
+        result.push((i + 1, j));
+    }
+    if j != 0 {
+        result.push((i, j - 1));
+    }
+    if j != grid[0].len() - 1 {
+        result.push((i, j + 1));
+    }
+    result
+}
+
+fn dfs(root: (usize, usize), grid: &Vec<Vec<char>>) -> HashSet<(usize, usize)> {
     let mut stack = vec![root];
     let mut visited = HashSet::new();
     visited.insert(root);
-    let mut edge = HashSet::new();
     while let Some((i, j)) = stack.pop() {
-        for offset in [1, usize::MAX] {
-            {
-                let x = i.wrapping_add(offset);
-                if x < grid.len() && grid[x][j] == grid[i][j] {
-                    edge.insert(((i, j), (x, j)));
-                    if visited.insert((x, j)) {
-                        stack.push((x, j));
-                    }
-                }
-            }
-            {
-                let y = j.wrapping_add(offset);
-                if y < grid.len() && grid[i][y] == grid[i][j] {
-                    edge.insert(((i, j), (i, y)));
-                    if visited.insert((i, y)) {
-                        stack.push((i, y));
-                    }
+        let neighbors = get_neighbor((i, j), grid);
+        for (x, y) in neighbors {
+            if grid[x][y] == grid[i][j] {
+                if visited.insert((x, y)) {
+                    stack.push((x, y));
                 }
             }
         }
     }
-    let area = visited.len() as u64;
-    for (i, j) in visited {
-        grid[i][j] = '.'
+    visited
+}
+
+fn count_edge(regions: &HashSet<(usize, usize)>) -> u64 {
+    let mut rows = BTreeMap::new();
+    let mut columns = BTreeMap::new();
+    for (i, j) in regions {
+        rows.entry(j).or_insert(BTreeSet::new()).insert(i);
+        columns.entry(i).or_insert(BTreeSet::new()).insert(j);
     }
-    (area, area * 4 - edge.len() as u64)
+    let mut count = 0;
+    count += rows.first_key_value().unwrap().1.len();
+    count += rows.last_key_value().unwrap().1.len();
+    for (a, b) in rows.into_values().tuple_windows() {
+        count += a.symmetric_difference(&b).count()
+    }
+    count += columns.first_key_value().unwrap().1.len();
+    count += columns.last_key_value().unwrap().1.len();
+    for (a, b) in columns.into_values().tuple_windows() {
+        count += a.symmetric_difference(&b).count()
+    }
+    count.to_u64().unwrap()
+}
+
+fn count_edge_group(regions: HashSet<(usize, usize)>) -> u64 {
+    todo!()
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
@@ -50,10 +75,14 @@ pub fn part_one(input: &str) -> Option<u64> {
         if grid[i][j] == '.' {
             continue;
         }
-        let dbg_info = grid[i][j];
-        let (area, edge) = part_one_dfs((i, j), &mut grid);
-        // dbg!(dbg_info, area, edge, area * edge);
+        let region = dfs((i, j), &grid);
+        let area = region.len() as u64;
+        let edge = count_edge(&region);
+        dbg!(grid[i][j], area, edge, area * edge);
         sum += area * edge;
+        for (x, y) in region {
+            grid[x][y] = '.';
+        }
     }
     Some(sum)
 }
