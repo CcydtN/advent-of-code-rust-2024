@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 mod util;
-use util::Vector;
 
 use num::ToPrimitive;
 
@@ -16,7 +15,9 @@ pub fn part_one(input: &str) -> Option<u64> {
             if cell == '.' {
                 continue;
             }
-            map.entry(cell).or_default().push(Vector::new(i, j));
+            map.entry(cell)
+                .or_default()
+                .push(util::SimpleVector::new(i, j));
         }
     }
     // dbg!(map);
@@ -44,7 +45,9 @@ pub fn part_two(input: &str) -> Option<u64> {
             if cell == '.' {
                 continue;
             }
-            map.entry(cell).or_default().push(Vector::new(i, j));
+            map.entry(cell)
+                .or_default()
+                .push(util::SimpleVector::new(i, j));
         }
     }
     // dbg!(map);
