@@ -3,18 +3,18 @@ use std::ops::Sub;
 use std::ops::Add;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub(crate) struct SimpleVector {
+pub(crate) struct Vector {
     pub(crate) x: usize,
     pub(crate) y: usize,
 }
 
-impl SimpleVector {
+impl Vector {
     pub(crate) fn new(x: usize, y: usize) -> Self {
         Self { x, y }
     }
 }
 
-impl Add for SimpleVector {
+impl Add for Vector {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -22,15 +22,15 @@ impl Add for SimpleVector {
     }
 }
 
-impl Add for &SimpleVector {
-    type Output = SimpleVector;
+impl Add for &Vector {
+    type Output = Vector;
 
     fn add(self, rhs: Self) -> Self::Output {
-        SimpleVector::new(self.x.wrapping_add(rhs.x), self.y.wrapping_add(rhs.y))
+        Vector::new(self.x.wrapping_add(rhs.x), self.y.wrapping_add(rhs.y))
     }
 }
 
-impl Sub for SimpleVector {
+impl Sub for Vector {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -38,10 +38,10 @@ impl Sub for SimpleVector {
     }
 }
 
-impl Sub for &SimpleVector {
-    type Output = SimpleVector;
+impl Sub for &Vector {
+    type Output = Vector;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        SimpleVector::new(self.x.wrapping_sub(rhs.x), self.y.wrapping_sub(rhs.y))
+        Vector::new(self.x.wrapping_sub(rhs.x), self.y.wrapping_sub(rhs.y))
     }
 }
