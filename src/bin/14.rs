@@ -1,7 +1,10 @@
 advent_of_code::solution!(14);
 
+use std::collections::HashSet;
+
 use itertools::Itertools;
 use nalgebra::{vector, Vector2, VectorView2};
+use num::ToPrimitive;
 
 #[derive(Debug)]
 struct Robot {
@@ -52,6 +55,15 @@ impl Robot {
             .unwrap();
         tmp.into()
     }
+
+    fn advance(&mut self, space: VectorView2<i64>) {
+        self.pos += self.vel;
+        self.pos.iter_mut().zip(space).for_each(|(a, b)| {
+            *a %= b;
+            *a += b;
+            *a %= b;
+        });
+    }
 }
 
 fn parse_input(input: &str) -> Option<Vec<Robot>> {
@@ -90,7 +102,34 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    // If it display a picture, none of them should stack on each other?
+    let mut robots = parse_input(input).unwrap();
+    let space = get_space();
+    let mut count = 0usize;
+    loop {
+        robots
+            .iter_mut()
+            .for_each(|robot| robot.advance(space.as_view()));
+        count += 1;
+
+        let mut visited = HashSet::new();
+        if robots.iter().all(|robot| visited.insert(robot.pos)) {
+            break;
+        }
+    }
+    // print the grid
+
+    // let mut grid = vec![vec!['.'; space.y as usize]; space.x as usize];
+    // for robot in robots {
+    //     grid[robot.pos.x as usize][robot.pos.y as usize] = '#';
+    // }
+    // for row in grid {
+    //     for cell in row {
+    //         print!("{}", cell);
+    //     }
+    //     println!("");
+    // }
+    count.to_u64()
 }
 
 fn get_space() -> Vector2<i64> {
@@ -114,6 +153,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(1));
     }
 }
