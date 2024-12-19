@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use num::ToPrimitive;
 
 advent_of_code::solution!(17);
@@ -85,10 +86,30 @@ impl Computer {
         }
         outputs
     }
+
+    fn parse_from(input: &str) -> Option<Self> {
+        let mut iter = input.lines();
+        let mut register = [0; 3];
+        for i in 0..3 {
+            let line = iter.next().unwrap().trim();
+            let pattern = line.find(": ").unwrap();
+            register[i] = line[pattern + 2..].parse::<usize>().ok()?;
+        }
+        iter.next();
+        let line = iter.next()?.trim();
+        let pattern = line.find(": ")?;
+        let program: Result<Vec<_>, _> = line[pattern + 2..]
+            .split(",")
+            .map(|val| val.parse())
+            .collect();
+        Some(Self::new(register, program.ok()?))
+    }
 }
 
-pub fn part_one(input: &str) -> Option<u64> {
-    None
+pub fn part_one(input: &str) -> Option<String> {
+    let mut computer = Computer::parse_from(input)?;
+    let output = computer.run_until_halts();
+    Some(output.into_iter().map(|val| val.to_string()).join(","))
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
@@ -102,7 +123,7 @@ mod tests {
     #[test]
     fn test_part_one() {
         let result = part_one(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some("4,6,3,5,6,3,5,2,1,0".to_owned()));
     }
 
     #[test]
