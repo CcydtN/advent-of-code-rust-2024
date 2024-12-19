@@ -3,6 +3,7 @@ use num::ToPrimitive;
 
 advent_of_code::solution!(17);
 
+#[derive(Debug, PartialEq, Eq)]
 enum Opcode {
     Adv,
     Bxl,
@@ -14,20 +15,18 @@ enum Opcode {
     Cdv,
 }
 
-impl TryFrom<usize> for Opcode {
-    type Error = ();
-
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
+impl From<usize> for Opcode {
+    fn from(value: usize) -> Self {
         match value {
-            0 => Ok(Self::Adv),
-            1 => Ok(Self::Bxl),
-            2 => Ok(Self::Bst),
-            3 => Ok(Self::Jnz),
-            4 => Ok(Self::Bxc),
-            5 => Ok(Self::Out),
-            6 => Ok(Self::Bdv),
-            7 => Ok(Self::Cdv),
-            _ => Err(()),
+            0 => Self::Adv,
+            1 => Self::Bxl,
+            2 => Self::Bst,
+            3 => Self::Jnz,
+            4 => Self::Bxc,
+            5 => Self::Out,
+            6 => Self::Bdv,
+            7 => Self::Cdv,
+            _ => unreachable!(),
         }
     }
 }
@@ -37,6 +36,7 @@ struct Computer {
     registers: [usize; 3],
     program: Vec<usize>,
     instruction_pointer: usize,
+    output: Vec<usize>,
 }
 
 impl Computer {
@@ -45,6 +45,7 @@ impl Computer {
             registers,
             program,
             instruction_pointer: 0,
+            output: vec![],
         }
     }
 
@@ -63,28 +64,34 @@ impl Computer {
     }
 
     fn run_until_halts(&mut self) -> Vec<usize> {
-        let mut outputs = vec![];
-        while self.instruction_pointer < self.program.len() {
-            let opcode: Opcode = self.program[self.instruction_pointer].try_into().unwrap();
-            let operand = self.program[self.instruction_pointer + 1];
-            match opcode {
-                Opcode::Adv => self.registers[0] = self.do_division(operand),
-                Opcode::Bxl => self.registers[1] ^= operand,
-                Opcode::Bst => self.registers[1] = self.get_combo_operand(operand) % 8,
-                Opcode::Jnz => {
-                    if self.registers[0] != 0 {
-                        self.instruction_pointer = operand;
-                        continue;
-                    }
-                }
-                Opcode::Bxc => self.registers[1] ^= self.registers[2],
-                Opcode::Out => outputs.push(self.get_combo_operand(operand) % 8),
-                Opcode::Bdv => self.registers[1] = self.do_division(operand),
-                Opcode::Cdv => self.registers[2] = self.do_division(operand),
-            }
-            self.instruction_pointer += 2;
+        while self.run_once() {}
+        self.output.clone()
+    }
+
+    fn run_once(&mut self) -> bool {
+        if self.instruction_pointer >= self.program.len() {
+            return false;
         }
-        outputs
+        let opcode: Opcode = self.program[self.instruction_pointer].try_into().unwrap();
+        let operand = self.program[self.instruction_pointer + 1];
+        match opcode {
+            Opcode::Adv => self.registers[0] = self.do_division(operand),
+            Opcode::Bxl => self.registers[1] ^= operand,
+            Opcode::Bst => self.registers[1] = self.get_combo_operand(operand) % 8,
+            Opcode::Jnz => {
+                if self.registers[0] != 0 {
+                    assert!(operand < self.instruction_pointer);
+                    self.instruction_pointer = operand;
+                    return true;
+                }
+            }
+            Opcode::Bxc => self.registers[1] ^= self.registers[2],
+            Opcode::Out => self.output.push(self.get_combo_operand(operand) % 8),
+            Opcode::Bdv => self.registers[1] = self.do_division(operand),
+            Opcode::Cdv => self.registers[2] = self.do_division(operand),
+        }
+        self.instruction_pointer += 2;
+        true
     }
 
     fn parse_from(input: &str) -> Option<Self> {
@@ -113,6 +120,23 @@ pub fn part_one(input: &str) -> Option<String> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
+    // Check the following two things,
+    // 1. Will the input to any odd idx
+    // 2. Is the jump going forward or backward
+    {
+        let computer = Computer::parse_from(input)?;
+        computer
+            .program
+            .chunks(2)
+            .enumerate()
+            .for_each(|(i, values)| {
+                let opcode = values[0];
+                let operand = values[1];
+                if opcode == Opcode::Jnz as usize {
+                    assert!(operand < (2 * i));
+                }
+            })
+    }
     None
 }
 
@@ -133,7 +157,7 @@ mod tests {
         let result = part_two(&advent_of_code::template::read_file_part(
             "examples", DAY, 2,
         ));
-        assert_eq!(result, None);
+        // assert_eq!(result, Some(117440));
     }
 
     #[test]
