@@ -25,7 +25,8 @@ enum Dir {
 const DIRECTIONS: [Dir; 4] = [Dir::North, Dir::East, Dir::South, Dir::West];
 
 impl Dir {
-    fn move_from(&self, mut pos: (usize, usize)) -> (usize, usize) {
+    fn move_from(&self, pos: &(usize, usize)) -> (usize, usize) {
+        let mut pos = pos.clone();
         match self {
             Dir::North => pos.0 -= 1,
             Dir::East => pos.1 += 1,
@@ -38,9 +39,8 @@ impl Dir {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct Reindeer {
-    pos: (usize, usize),
+    pos: Vec<(usize, usize)>,
     facing: Dir,
-    step: usize,
     rotate: usize,
 }
 
@@ -57,24 +57,22 @@ impl Ord for Reindeer {
 }
 
 impl Reindeer {
-    fn new(pos: (usize, usize), facing: Dir, step: usize, rotate: usize) -> Self {
+    fn new(pos: (usize, usize), facing: Dir, rotate: usize) -> Self {
         Self {
-            pos,
+            pos: vec![pos],
             facing,
-            step,
             rotate,
         }
     }
 
     fn init(pos: (usize, usize)) -> Self {
-        Self::new(pos, Dir::East, 0, 0)
+        Self::new(pos, Dir::East, 0)
     }
 
     fn move_next(self) -> [Self; 4] {
         let mut next = std::array::from_fn(|_| self.clone());
         for (item, dir) in next.iter_mut().zip(DIRECTIONS) {
-            item.pos = dir.move_from(item.pos);
-            item.step += 1;
+            item.pos.push(dir.move_from(item.position()));
             item.rotate += if dir == item.facing { 0 } else { 1 };
             item.facing = dir;
         }
@@ -83,7 +81,12 @@ impl Reindeer {
 
     #[inline]
     fn score(&self) -> usize {
-        self.rotate * 1000 + self.step
+        self.rotate * 1000 + (self.pos.len() - 1)
+    }
+
+    #[inline]
+    fn position(&self) -> &(usize, usize) {
+        self.pos.last().unwrap()
     }
 }
 
@@ -126,19 +129,21 @@ pub fn part_one(input: &str) -> Option<u64> {
     grid[start.0][start.1] = Cell::Visited(0);
 
     while let Some(Reverse(reindeer)) = priority_queue.pop() {
-        if reindeer.pos == end {
+        let current_pos = reindeer.position();
+        if current_pos == &end {
             debug(&grid);
             return reindeer.score().to_u64();
         }
-        match grid[reindeer.pos.0][reindeer.pos.1] {
+        match grid[current_pos.0][current_pos.1] {
             Cell::Visited(score) if score != reindeer.score() => continue,
             Cell::Visited(_) => {}
             _ => unreachable!(),
         }
         for next in reindeer.move_next() {
-            match grid[next.pos.0][next.pos.1] {
+            let next_pos = next.position();
+            match grid[next_pos.0][next_pos.1] {
                 Cell::Empty => {
-                    grid[next.pos.0][next.pos.1] = Cell::Visited(next.score());
+                    grid[next_pos.0][next_pos.1] = Cell::Visited(next.score());
                     priority_queue.push(Reverse(next));
                 }
                 Cell::Visited(ref mut score) if *score > next.score() => {
