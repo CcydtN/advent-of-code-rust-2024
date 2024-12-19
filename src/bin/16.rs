@@ -131,7 +131,6 @@ pub fn part_one(input: &str) -> Option<u64> {
     while let Some(Reverse(reindeer)) = priority_queue.pop() {
         let current_pos = reindeer.position();
         if current_pos == &end {
-            debug(&grid);
             return reindeer.score().to_u64();
         }
         match grid[current_pos.0][current_pos.1] {
@@ -159,7 +158,41 @@ pub fn part_one(input: &str) -> Option<u64> {
 
 // 475 too low
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let (mut grid, start, end) = parse_input(input);
+    let mut priority_queue = BinaryHeap::new();
+    priority_queue.push(Reverse(Reindeer::init(start)));
+    grid[start.0][start.1] = Cell::Visited(0);
+    let mut min_score = None;
+    let mut nice_tile = HashSet::new();
+
+    while let Some(Reverse(reindeer)) = priority_queue.pop() {
+        let current_pos = reindeer.position();
+        if min_score.is_some() && reindeer.score() > min_score.unwrap() {
+            return nice_tile.len().to_u64();
+        }
+        if current_pos == &end {
+            let _ = min_score.insert(reindeer.score());
+            reindeer.pos.into_iter().for_each(|val| {
+                nice_tile.insert(val);
+            });
+            continue;
+        }
+        for next in reindeer.move_next() {
+            let next_pos = next.position();
+            match grid[next_pos.0][next_pos.1] {
+                Cell::Empty => {
+                    grid[next_pos.0][next_pos.1] = Cell::Visited(next.pos.len());
+                    priority_queue.push(Reverse(next));
+                }
+                Cell::Visited(ref mut step) if *step >= next.pos.len() => {
+                    *step = next.pos.len();
+                    priority_queue.push(Reverse(next));
+                }
+                Cell::Wall | Cell::Visited(_) => {}
+            }
+        }
+    }
+    nice_tile.len().to_u64()
 }
 
 fn debug(grid: &[Vec<Cell>]) {
