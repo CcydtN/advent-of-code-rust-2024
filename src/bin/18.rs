@@ -1,10 +1,9 @@
 use std::{
     cmp::Reverse,
-    collections::{BinaryHeap, HashMap, HashSet},
+    collections::{BinaryHeap, HashSet},
 };
 
 use itertools::Itertools;
-use nalgebra::distance;
 use num::ToPrimitive;
 
 advent_of_code::solution!(18);
@@ -54,15 +53,15 @@ pub fn part_one(input: &str) -> Option<u64> {
     let positions = parse_input(input)?;
     dbg!(positions.len());
     let grid_size = get_grid_size();
-    let corrupted = positions
-        .into_iter()
-        .take(get_take_amount())
-        .collect::<HashSet<_>>();
+    path_finding(grid_size, &positions[..get_take_amount()])
+}
+
+fn path_finding(grid_size: (usize, usize), corrupted: &[(usize, usize)]) -> Option<u64> {
+    let corrupted = corrupted.into_iter().collect::<HashSet<_>>();
 
     let start = (0, 0);
     let end = (grid_size.0 - 1, grid_size.1 - 1);
     let total_step = 0;
-
     let mut prioity_queue = BinaryHeap::new();
     prioity_queue.push((Reverse(total_step), vec![start]));
     let mut visited = vec![vec![usize::MAX; grid_size.1]; grid_size.0];
@@ -72,8 +71,6 @@ pub fn part_one(input: &str) -> Option<u64> {
         let current = path.last().unwrap();
         // dbg!(current);
         if current == &end {
-            debug(grid_size, &path, &corrupted);
-            // return None;
             return (path.len() - 1).to_u64();
         }
         if visited[current.0][current.1] != total_step {
@@ -95,30 +92,22 @@ pub fn part_one(input: &str) -> Option<u64> {
     None
 }
 
-pub fn part_two(input: &str) -> Option<u64> {
-    None
-}
+pub fn part_two(input: &str) -> Option<String> {
+    let positions = parse_input(input)?;
+    dbg!(positions.len());
+    let grid_size = get_grid_size();
 
-fn debug(
-    grid_size: (usize, usize),
-    path: &Vec<(usize, usize)>,
-    corrupted: &HashSet<(usize, usize)>,
-) {
-    println!("---");
-    let mut grid = vec![vec!['.'; grid_size.1]; grid_size.0];
-    for &(i, j) in corrupted {
-        grid[j][i] = '#';
-    }
-    for &(i, j) in path {
-        grid[j][i] = 'O';
-    }
-    for row in grid {
-        for cell in row {
-            print!("{cell}");
+    let mut left = 0;
+    let mut right = positions.len();
+    while left < right {
+        let mid = (left + right) / 2;
+        if path_finding(grid_size, &positions[..mid]).is_some() {
+            left = mid + 1;
+        } else {
+            right = mid;
         }
-        println!("");
     }
-    println!("---");
+    Some(positions[left - 1].0.to_string() + "," + &positions[left - 1].1.to_string())
 }
 
 #[cfg(test)]
@@ -134,6 +123,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some("6,1".to_owned()));
     }
 }
