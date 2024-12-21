@@ -57,7 +57,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     let path = find_path(&grid, start, end);
     assert_eq!(path.len(), expected_len);
 
-    let cheats = find_cheats(&path);
+    let cheats = find_cheats(&path, 2);
     // dbg!(&cheats
     //     .iter()
     //     .map(|(key, val)| (key, val.len()))
@@ -105,17 +105,23 @@ fn parse_input(input: &str) -> (Vec<Vec<char>>, (usize, usize), (usize, usize), 
     (grid, start.unwrap(), end.unwrap(), expected_len)
 }
 
-fn find_cheats(path: &[(usize, usize)]) -> HashMap<usize, Vec<((usize, usize), (usize, usize))>> {
+fn manhattan_distance(point_a: &(usize, usize), point_b: &(usize, usize)) -> usize {
+    point_a.0.abs_diff(point_b.0) + point_a.1.abs_diff(point_b.1)
+}
+
+fn find_cheats(
+    path: &[(usize, usize)],
+    allowance: usize,
+) -> HashMap<usize, Vec<((usize, usize), (usize, usize))>> {
     let mut cheats = HashMap::new();
-    let mut visited = HashMap::new();
-    for (i, position) in path.iter().enumerate() {
-        for successor in get_successor(position, 2) {
-            if let Some(j) = visited.get(&successor) {
+    for (i, end_point) in path.iter().enumerate().skip(2) {
+        for (j, start_point) in path[..i - 2].iter().enumerate() {
+            let dist = manhattan_distance(start_point, end_point);
+            if dist <= allowance {
                 let entry = cheats.entry(i - j - 2).or_insert(vec![]);
-                entry.push((successor, *position));
+                entry.push((*start_point, *end_point));
             }
         }
-        visited.insert(position, i);
     }
     cheats
 }
