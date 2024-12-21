@@ -126,10 +126,11 @@ fn find_cheats(
     for (i, end_point) in path.iter().enumerate().skip(2) {
         for (j, start_point) in path[..i - 2].iter().enumerate() {
             let dist = manhattan_distance(start_point, end_point);
-            if dist <= allowance {
-                let entry = cheats.entry(i - j - 2).or_insert(vec![]);
-                entry.push((*start_point, *end_point));
+            if dist > allowance {
+                continue;
             }
+            let entry = cheats.entry(i - j - dist).or_insert(vec![]);
+            entry.push((*start_point, *end_point));
         }
     }
     cheats
