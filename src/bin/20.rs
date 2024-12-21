@@ -5,9 +5,17 @@ use num::ToPrimitive;
 
 advent_of_code::solution!(20);
 
-fn get_lower_bound() -> usize {
+fn get_part_1_lower_bound() -> usize {
     if cfg!(test) {
         10
+    } else {
+        100
+    }
+}
+
+fn get_part_2_lower_bound() -> usize {
+    if cfg!(test) {
+        50
     } else {
         100
     }
@@ -57,14 +65,14 @@ pub fn part_one(input: &str) -> Option<u64> {
     let path = find_path(&grid, start, end);
     assert_eq!(path.len(), expected_len);
 
-    let cheats = find_cheats(&path, 2);
+    let cheats = find_cheats(&path, 2, &grid);
     // dbg!(&cheats
     //     .iter()
     //     .map(|(key, val)| (key, val.len()))
     //     .collect_vec());
     cheats
         .into_iter()
-        .filter(|(time_saved, _)| time_saved >= &get_lower_bound())
+        .filter(|(time_saved, _)| time_saved >= &get_part_1_lower_bound())
         .map(|(_, val)| val.len())
         .sum::<usize>()
         .to_u64()
@@ -112,6 +120,7 @@ fn manhattan_distance(point_a: &(usize, usize), point_b: &(usize, usize)) -> usi
 fn find_cheats(
     path: &[(usize, usize)],
     allowance: usize,
+    grid: &Vec<Vec<char>>,
 ) -> HashMap<usize, Vec<((usize, usize), (usize, usize))>> {
     let mut cheats = HashMap::new();
     for (i, end_point) in path.iter().enumerate().skip(2) {
@@ -127,7 +136,24 @@ fn find_cheats(
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let (grid, start, end, expected_len) = parse_input(input);
+    dbg!(&grid.len(), &grid[0].len());
+    dbg!(&start, &end);
+
+    let path = find_path(&grid, start, end);
+    assert_eq!(path.len(), expected_len);
+
+    let cheats = find_cheats(&path, 20, &grid);
+    // dbg!(&cheats
+    //     .iter()
+    //     .map(|(key, val)| (key, val.len()))
+    //     .collect_vec());
+    cheats
+        .into_iter()
+        .filter(|(time_saved, _)| time_saved >= &get_part_2_lower_bound())
+        .map(|(_, val)| val.len())
+        .sum::<usize>()
+        .to_u64()
 }
 
 #[cfg(test)]
@@ -143,6 +169,9 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(
+            result,
+            Some(32 + 31 + 29 + 39 + 25 + 23 + 20 + 19 + 12 + 14 + 12 + 22 + 4 + 3)
+        );
     }
 }
