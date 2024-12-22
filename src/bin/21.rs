@@ -161,7 +161,25 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let codes = input.split_whitespace().collect_vec();
+    let numeric_part = codes
+        .iter()
+        .map(|&code| code[..3].parse::<usize>().unwrap())
+        .collect_vec();
+    let mapping = generate_seq_map(25);
+
+    let sequence = codes
+        .iter()
+        .map(|code| code.chars().collect_vec())
+        .map(|code| helper(&code, &mapping))
+        .collect_vec();
+
+    sequence
+        .into_iter()
+        .zip(numeric_part)
+        .map(|(a, b)| dbg!(a) * dbg!(b))
+        .sum::<usize>()
+        .to_u64()
 }
 
 #[cfg(test)]
@@ -177,6 +195,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert!(result.is_some());
     }
 }
