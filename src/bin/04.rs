@@ -26,53 +26,31 @@ const ALL_DIR: [Dir; 8] = [
 ];
 
 impl Dir {
-    fn advance(&self, grid: &Vec<Vec<char>>, (i, j): (usize, usize)) -> Option<(usize, usize)> {
+    fn advance(&self, (i, j): (usize, usize)) -> (usize, usize) {
         match self {
-            Dir::U => {
-                if i == 0 {
-                    None
-                } else {
-                    Some((i - 1, j))
-                }
-            }
-            Dir::D => {
-                if i >= grid.len() - 1 {
-                    None
-                } else {
-                    Some((i + 1, j))
-                }
-            }
-            Dir::L => {
-                if j == 0 {
-                    None
-                } else {
-                    Some((i, j - 1))
-                }
-            }
-            Dir::R => {
-                if j >= grid[0].len() - 1 {
-                    None
-                } else {
-                    Some((i, j + 1))
-                }
-            }
-            Dir::UL => Self::advance(&Self::U, grid, Self::advance(&Self::L, grid, (i, j))?),
-            Dir::DL => Self::advance(&Self::D, grid, Self::advance(&Self::L, grid, (i, j))?),
-            Dir::UR => Self::advance(&Self::U, grid, Self::advance(&Self::R, grid, (i, j))?),
-            Dir::DR => Self::advance(&Self::D, grid, Self::advance(&Self::R, grid, (i, j))?),
+            Dir::U => (i.wrapping_sub(1), j),
+            Dir::D => (i + 1, j),
+            Dir::L => (i, j.wrapping_sub(1)),
+            Dir::R => (i, j + 1),
+            Dir::UL => Self::advance(&Self::U, Self::advance(&Self::L, (i, j))),
+            Dir::DL => Self::advance(&Self::D, Self::advance(&Self::L, (i, j))),
+            Dir::UR => Self::advance(&Self::U, Self::advance(&Self::R, (i, j))),
+            Dir::DR => Self::advance(&Self::D, Self::advance(&Self::R, (i, j))),
         }
     }
 }
 
-pub fn check(grid: &Vec<Vec<char>>, (i, j): (usize, usize), dir: Dir, depth: usize) -> bool {
+fn check(grid: &Vec<Vec<char>>, (i, j): (usize, usize), dir: Dir, depth: usize) -> bool {
     if depth == XMAS.len() {
         return true;
     }
-    if let Some((i, j)) = dir.advance(grid, (i, j)) {
-        // dbg!(i, j);
-        if grid[i][j] == XMAS[depth] {
-            return check(grid, (i, j), dir, depth + 1);
-        }
+    let (i, j) = dir.advance((i, j));
+    // dbg!(i, j);
+    if i >= grid.len() || j >= grid[0].len() {
+        return false;
+    }
+    if grid[i][j] == XMAS[depth] {
+        return check(grid, (i, j), dir, depth + 1);
     }
     false
 }
@@ -89,7 +67,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     let mut count = 0;
     for (i, row) in grid.iter().enumerate() {
         for (j, ch) in row.iter().enumerate() {
-            if ch != &XMAS[0] {
+            if ch != &'X' {
                 continue;
             }
             // dbg!(i, j);
@@ -121,16 +99,10 @@ pub fn part_two(input: &str) -> Option<u64> {
                 (grid[i + 1][j + 1], grid[i - 1][j - 1]),
                 (grid[i - 1][j + 1], grid[i + 1][j - 1]),
             ) {
-                (('M', 'S'), ('S', 'M')) => {
-                    count += 1;
-                }
-                (('M', 'S'), ('M', 'S')) => {
-                    count += 1;
-                }
-                (('S', 'M'), ('S', 'M')) => {
-                    count += 1;
-                }
-                (('S', 'M'), ('M', 'S')) => {
+                (('M', 'S'), ('S', 'M'))
+                | (('M', 'S'), ('M', 'S'))
+                | (('S', 'M'), ('S', 'M'))
+                | (('S', 'M'), ('M', 'S')) => {
                     count += 1;
                 }
                 ((_, _), (_, _)) => {}
