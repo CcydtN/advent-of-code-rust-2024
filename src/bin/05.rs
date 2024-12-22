@@ -4,9 +4,13 @@ use itertools::Itertools;
 
 advent_of_code::solution!(5);
 
-fn part_one_check_order(updates: &[u64], rules: &HashMap<u64, HashSet<u64>>) -> bool {
-    let mut table = rules.get(&updates[0]).cloned().unwrap_or(HashSet::new());
-    for update in updates[1..updates.len() - 1].into_iter() {
+fn part_one_check_order(update: &[u64], rules: &HashMap<u64, HashSet<u64>>) -> bool {
+    let mut table = rules.get(&update[0]).cloned().unwrap_or(HashSet::new());
+    // Skipping the first and last item
+    let mut iter = update.into_iter().skip(1);
+    let last = iter.next_back().unwrap();
+
+    for update in iter {
         if !table.contains(update) {
             return false;
         }
@@ -16,37 +20,45 @@ fn part_one_check_order(updates: &[u64], rules: &HashMap<u64, HashSet<u64>>) -> 
             return false;
         }
     }
-    table.contains(updates.last().unwrap())
+    table.contains(last)
+}
+
+fn parse(input: &str) -> Option<(HashMap<u64, HashSet<u64>>, Vec<Vec<u64>>)> {
+    let (rules_input, updates_input) = input.split("\n\n").collect_tuple()?;
+
+    let mut rules = HashMap::new();
+    for line in rules_input.lines().take_while(|line| line != &"") {
+        let (before, after) = dbg!(line)
+            .split("|")
+            .filter_map(|val| val.parse::<u64>().ok())
+            .collect_tuple()?;
+        rules.entry(before).or_insert(HashSet::new()).insert(after);
+    }
+
+    let mut updates = vec![];
+    for line in updates_input.lines() {
+        let update: Result<Vec<u64>, _> = line.split(",").map(|item| item.parse::<u64>()).collect();
+        updates.push(update.ok()?)
+    }
+    Some((rules, updates))
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
     // dbg!(input);
-    let mut parts = input.split("\n\n");
-    let mut rules = HashMap::new();
-    for line in parts.next().unwrap().lines() {
-        let sep = line.find('|').unwrap();
-        let before = line[..sep].parse::<u64>().unwrap();
-        let after = line[sep + 1..].parse::<u64>().unwrap();
-        rules.entry(before).or_insert(HashSet::new()).insert(after);
-    }
-    dbg!(&rules);
+    let (rules, updates) = parse(input)?;
 
     let mut sum = 0;
-    for line in parts.next().unwrap().lines() {
-        let items = line
-            .split(",")
-            .map(|item| item.parse::<u64>().unwrap())
-            .collect_vec();
-        if part_one_check_order(&items, &rules) {
-            dbg!(&items);
-            sum += items[items.len() / 2];
+    for update in updates {
+        if part_one_check_order(&update, &rules) {
+            dbg!(&update);
+            sum += update[update.len() / 2];
         }
     }
     Some(sum)
 }
 
-fn part_two_helper(updates: Vec<u64>, rules: &HashMap<u64, HashSet<u64>>) -> Vec<u64> {
-    let updates = updates.into_iter().collect::<HashSet<u64>>();
+fn part_two_helper(update: Vec<u64>, rules: &HashMap<u64, HashSet<u64>>) -> Vec<u64> {
+    let updates = update.into_iter().collect::<HashSet<u64>>();
     let purned_rules = rules
         .into_iter()
         .filter(|(key, _)| updates.contains(key))
@@ -60,26 +72,14 @@ fn part_two_helper(updates: Vec<u64>, rules: &HashMap<u64, HashSet<u64>>) -> Vec
 
 pub fn part_two(input: &str) -> Option<u64> {
     // dbg!(input);
-    let mut parts = input.split("\n\n");
-    let mut rules = HashMap::new();
-    for line in parts.next().unwrap().lines() {
-        let sep = line.find('|').unwrap();
-        let before = line[..sep].parse::<u64>().unwrap();
-        let after = line[sep + 1..].parse::<u64>().unwrap();
-        rules.entry(before).or_insert(HashSet::new()).insert(after);
-    }
-    // dbg!(&rules);
+    let (rules, updates) = parse(input)?;
 
     let mut sum = 0;
-    for line in parts.next().unwrap().lines() {
-        let items = line
-            .split(",")
-            .map(|item| item.parse::<u64>().unwrap())
-            .collect_vec();
-        if part_one_check_order(&items, &rules) {
+    for update in updates {
+        if part_one_check_order(&update, &rules) {
             continue;
         }
-        let new_items = part_two_helper(items.clone(), &rules);
+        let new_items = part_two_helper(update, &rules);
         dbg!(&new_items);
         sum += new_items[new_items.len() / 2];
     }
