@@ -1,34 +1,22 @@
-use num::ToPrimitive;
-
 advent_of_code::solution!(3);
 
 // start with "mul("
-pub fn try_mul_once(input: &str) -> Option<(u64, usize)> {
+pub fn try_mul(input: &str) -> Option<(u64, usize)> {
     if !input.starts_with("mul(") {
         return None;
     }
     let input: &str = &input[4..];
+
+    // We can add more check in here, make sure closing is within the rage
+    // X,Y are each 1-3 digit, mean closing is in [3, 7]
+    // But it seem not necessary
     let closing = input.find(")")?;
     let input: &str = &input[..closing];
-    // dbg!(&input);
-    let mut args = [0u64, 0u64];
-    let mut idx = 0;
-    for c in input.chars() {
-        match c {
-            ',' => {
-                idx += 1;
-                if idx > 2 {
-                    return None;
-                }
-            }
-            '0'..='9' => {
-                args[idx] *= 10u64;
-                args[idx] += c.to_digit(10).unwrap().to_u64().unwrap()
-            }
-            _ => {
-                return None;
-            }
-        }
+
+    let args: Result<Vec<u64>, _> = input.split(",").map(|arg| arg.parse::<u64>()).collect();
+    let args = args.ok()?;
+    if args.len() > 2 {
+        return None;
     }
     Some((args.into_iter().product(), closing))
 }
@@ -41,7 +29,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     while let Some(start) = input.find("mul(") {
         // dbg!(args);
         input = &input[start..];
-        if let Some((val, closing)) = try_mul_once(input) {
+        if let Some((val, closing)) = try_mul(input) {
             sum += val;
             input = &input[closing + 1..];
         } else {
@@ -55,20 +43,20 @@ pub fn part_two(input: &str) -> Option<u64> {
     let mut input = input;
     let mut sum = 0;
     let mut is_enable = true;
-    const pattern: [&str; 3] = ["mul(", "do()", "don't()"];
-    while let Some(start) = pattern.into_iter().filter_map(|pat| input.find(pat)).min() {
+    const PATTERN: [&str; 3] = ["mul(", "do()", "don't()"];
+    while let Some(start) = PATTERN.into_iter().filter_map(|pat| input.find(pat)).min() {
         input = &input[start..];
-        if input.starts_with(pattern[0]) {
+        if input.starts_with(PATTERN[0]) {
             if is_enable {
-                if let Some((val, closing)) = try_mul_once(input) {
+                if let Some((val, closing)) = try_mul(input) {
                     sum += val;
                     input = &input[closing + 1..];
                     continue;
                 }
             }
-        } else if input.starts_with(pattern[1]) {
+        } else if input.starts_with(PATTERN[1]) {
             is_enable = true;
-        } else if input.starts_with(pattern[2]) {
+        } else if input.starts_with(PATTERN[2]) {
             is_enable = false;
         } else {
             unreachable!()
