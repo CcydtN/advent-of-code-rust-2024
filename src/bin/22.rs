@@ -8,6 +8,8 @@ use num::ToPrimitive;
 
 advent_of_code::solution!(22);
 
+// How the code will be if I turn secret to its own struct?
+
 fn mix(val: u64, secret: u64) -> u64 {
     val ^ secret
 }
@@ -37,12 +39,7 @@ pub fn part_one(input: &str) -> Option<u64> {
         .collect_vec();
     let results = secrets
         .into_iter()
-        .map(|mut secret| {
-            for _ in 0..2000 {
-                secret = next_secret(secret);
-            }
-            secret
-        })
+        .map(|secret| secret_iter(secret).nth(2000 - 1).unwrap())
         .collect_vec();
     Some(results.into_iter().sum())
 }
