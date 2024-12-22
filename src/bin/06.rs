@@ -13,11 +13,6 @@ enum Cell {
     Obstacle,
 }
 
-#[derive(Debug, Default)]
-struct PartOne;
-#[derive(Debug, Clone, Default)]
-struct PartTwo;
-
 const UP: (usize, usize) = (usize::MAX, 0);
 const DOWN: (usize, usize) = (1, 0);
 const LEFT: (usize, usize) = (0, usize::MAX);
@@ -31,15 +26,14 @@ fn dir2idx(dir: &(usize, usize)) -> usize {
 }
 
 #[derive(Debug, Clone, Default)]
-struct Helper<T> {
+struct Helper {
     guard: (usize, usize),
     dir: (usize, usize),
     map: Vec<Vec<Cell>>,
     has_loop: bool,
-    _part: PhantomData<T>,
 }
 
-impl<T> Helper<T> {
+impl Helper {
     fn rotate(&self) -> (usize, usize) {
         match self.dir {
             UP => RIGHT,
@@ -56,9 +50,7 @@ impl<T> Helper<T> {
             self.guard.1.wrapping_add(self.dir.1),
         )
     }
-}
 
-impl Helper<PartOne> {
     fn new(input: &str) -> Self {
         let mut guard = None;
         let dir = (usize::MAX, 0);
@@ -125,30 +117,16 @@ impl Helper<PartOne> {
     }
 }
 
-impl Helper<PartTwo> {
-    fn new(input: &str) -> Self {
-        todo!()
-    }
-
-    fn compute(&mut self) -> bool {
-        todo!()
-    }
-
-    fn count(self) -> usize {
-        todo!()
-    }
-}
-
 pub fn part_one(input: &str) -> Option<u64> {
     // dbg!(input);
-    let mut helper = Helper::<PartOne>::new(input);
+    let mut helper = Helper::new(input);
     while helper.update() {}
     helper.count().to_u64()
 }
 
 // Brute force
 pub fn part_two(input: &str) -> Option<u64> {
-    let mut helper = Helper::<PartOne>::new(input);
+    let mut helper = Helper::new(input);
     while helper.update() {}
 
     let mut count = 0;
@@ -158,7 +136,7 @@ pub fn part_two(input: &str) -> Option<u64> {
                 Cell::Visited(_) => {}
                 _ => continue,
             }
-            let mut tmp = Helper::<PartOne>::new(input);
+            let mut tmp = Helper::new(input);
             tmp.map[i][j] = Cell::Obstacle;
             while tmp.update() {}
             if tmp.has_loop == true {
