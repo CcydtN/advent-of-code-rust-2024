@@ -3,39 +3,40 @@ use num::ToPrimitive;
 
 advent_of_code::solution!(2);
 
-fn part_one_report_check(report: &[i64]) -> bool {
-    let check = if report[0] > report[1] {
-        |a, b| a - b >= 1 && a - b <= 3
-    } else {
-        |a, b| b - a >= 1 && b - a <= 3
-    };
-    report.windows(2).all(|r| check(r[0], r[1]))
+fn report_check(report: &[i64]) -> bool {
+    // First condition: Every element must be sorted in ascending or desending order and at least differ by 1
+    (report.is_sorted_by(|a, b| a > b) || report.is_sorted_by(|a, b| a < b))
+    // Second condition: Every element differ by at Most 3
+        && report.windows(2).all(|r| r[0].abs_diff(r[1]) <= 3)
+}
+
+fn parse_reports(input: &str) -> Vec<Vec<i64>> {
+    input
+        .split_whitespace()
+        .map(|data| data.parse().unwrap())
+        .chunks(5)
+        .into_iter()
+        .map(|chunk| chunk.collect_vec())
+        .collect_vec()
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
     // dbg!(input);
-    let reports = input
-        .lines()
-        .map(|line| {
-            line.split_ascii_whitespace()
-                .map(|level| level.parse::<i64>().unwrap())
-                .collect_vec()
-        })
-        .collect_vec();
+    let reports = parse_reports(input);
 
     reports
         .into_iter()
-        .filter(|report| part_one_report_check(&report))
+        .filter(|report| report_check(report.as_slice()))
         .count()
         .to_u64()
 }
 
-fn part_two_report_check(report: &[i64]) -> bool {
+fn report_check_with_tolerance(report: &[i64]) -> bool {
     // Brute force
     for i in 0..report.len() {
         let mut clone = report.to_vec();
         clone.remove(i);
-        if part_one_report_check(&clone) {
+        if report_check(&clone) {
             return true;
         }
     }
@@ -43,18 +44,11 @@ fn part_two_report_check(report: &[i64]) -> bool {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let reports = input
-        .lines()
-        .map(|line| {
-            line.split_ascii_whitespace()
-                .map(|level| level.parse::<i64>().unwrap())
-                .collect_vec()
-        })
-        .collect_vec();
+    let reports = parse_reports(input);
 
     reports
         .into_iter()
-        .filter(|report| part_two_report_check(&report))
+        .filter(|report| report_check_with_tolerance(&report))
         .count()
         .to_u64()
 }
