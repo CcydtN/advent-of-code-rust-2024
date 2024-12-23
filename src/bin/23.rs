@@ -5,6 +5,10 @@ use num::ToPrimitive;
 
 advent_of_code::solution!(23);
 
+// Challenge for future me:
+// Try rewire the second part with iterator or yield, like the python example in
+// https://www.geeksforgeeks.org/maximal-clique-problem-recursive-solution/
+
 fn parse<'a>(input: &'a str) -> Option<Vec<(&'a str, &'a str)>> {
     input
         .split_whitespace()
@@ -33,34 +37,30 @@ pub fn part_one(input: &str) -> Option<u64> {
     inter_connected_with_t.len().to_u64()
 }
 
-fn find_upper_bound(pair_count: usize) -> usize {
-    let mut product = 1 * 2 * 3;
-    for i in 4..pair_count {
-        product *= i;
-        if pair_count < product {
-            return i;
-        }
-    }
-    unreachable!()
-}
-
-fn find_set_with_size<'a>(
+fn bron_kerbosch<'a>(
+    r: HashSet<&'a str>,
+    mut p: HashSet<&'a str>,
+    mut x: HashSet<&'a str>,
     neighbors: &HashMap<&'a str, HashSet<&'a str>>,
-    size: usize,
-) -> Option<Vec<&'a str>> {
-    'outer: for combination in neighbors.keys().cloned().combinations(size) {
-        let set = combination.iter().cloned().collect::<HashSet<_>>();
-        for item in &combination {
-            let interset_count = neighbors[item].intersection(&set).count();
-            if interset_count != set.len() - 1 {
-                continue 'outer;
-            }
-        }
-        return Some(combination);
+) -> Vec<HashSet<&'a str>> {
+    let mut cliques = vec![];
+    if p.is_empty() && x.is_empty() {
+        cliques.push(r.clone());
     }
-    None
+    while !p.is_empty() {
+        let value = p.iter().next().cloned().unwrap();
+        let mut new_r = r.clone();
+        new_r.insert(value);
+        let new_p = p.intersection(&neighbors[&value]).cloned().collect();
+        let new_x = x.intersection(&neighbors[&value]).cloned().collect();
+        cliques.append(&mut bron_kerbosch(new_r, new_p, new_x, neighbors));
+        p.remove(value);
+        x.insert(value);
+    }
+    return cliques;
 }
 
+// Maximal Clique Problem
 pub fn part_two(input: &str) -> Option<String> {
     let pairs = parse(input).unwrap();
     let mut neighbors = HashMap::new();
@@ -69,17 +69,18 @@ pub fn part_two(input: &str) -> Option<String> {
         neighbors.entry(b).or_insert(HashSet::new()).insert(a);
     }
 
-    let mut left = 3;
-    let mut right = find_upper_bound(pairs.len());
-    while dbg!(left) < dbg!(right) {
-        let mid = (left + right) / 2;
-        if find_set_with_size(&neighbors, mid).is_some() {
-            left = mid + 1;
-        } else {
-            right = mid;
-        }
-    }
-    let mut largest_set = find_set_with_size(&neighbors, left - 1).unwrap();
+    let mut largest_set = bron_kerbosch(
+        HashSet::new(),
+        neighbors.keys().cloned().collect(),
+        HashSet::new(),
+        &neighbors,
+    )
+    .into_iter()
+    .max_by_key(|v| v.len())
+    .unwrap()
+    .into_iter()
+    .collect_vec();
+
     largest_set.sort();
     let password = largest_set.join(",");
     Some(password)
